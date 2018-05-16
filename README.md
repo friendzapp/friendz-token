@@ -1,0 +1,3 @@
+# friendz-token
+
+- COMING SOON
