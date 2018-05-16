@@ -1,12 +1,23 @@
 pragma solidity 0.4.19;
 
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
 library SafeMath {
+
+	/**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
   function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a * b;
     assert(a == 0 || c / a == b);
     return c;
   }
 
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
   function div(uint256 a, uint256 b) internal pure returns (uint256) {
     // assert(b > 0); // Solidity automatically throws when dividing by 0
     uint256 c = a / b;
@@ -14,11 +25,17 @@ library SafeMath {
     return c;
   }
 
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
   function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     assert(b <= a);
     return a - b;
   }
 
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
   function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
     assert(c >= a);
@@ -26,6 +43,11 @@ library SafeMath {
   }
 }
 
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
 contract Ownable {
   address public owner;
 
@@ -65,6 +87,11 @@ contract Ownable {
 
 }
 
+/**
+ * @title ERC20Basic
+ * @dev Simpler version of ERC20 interface
+ * @dev see https://github.com/ethereum/EIPs/issues/179
+ */
 contract ERC20Basic {
   uint256 public totalSupply;
   function balanceOf(address who) public constant returns (uint256);
@@ -72,6 +99,10 @@ contract ERC20Basic {
   event Transfer(address indexed from, address indexed to, uint256 value);
 }
 
+/**
+ * @title Basic token
+ * @dev Basic version of StandardToken, with no allowances.
+ */
 contract BasicToken is ERC20Basic {
   using SafeMath for uint256;
 
@@ -104,11 +135,18 @@ contract BasicToken is ERC20Basic {
 
 }
 
+/**
+ * @title Burnable Token
+ * @dev Token that can be irreversibly burned (destroyed).
+ */
 contract BurnableToken is BasicToken {
-	// events
+	
 	event Burn(address indexed burner, uint256 amount);
 
-	// reduce sender balance and Token total supply
+	/** 
+	 * @dev Burns a specific amount of tokens.
+	 * @param _value The amount of tokens to be burned.
+	 */
 	function burn(uint256 _value) public {
 		balances[msg.sender] = balances[msg.sender].sub(_value);
 		totalSupply = totalSupply.sub(_value);
@@ -117,6 +155,10 @@ contract BurnableToken is BasicToken {
 	}
 }
 
+/**
+ * @title Friendz Token
+ * @dev The offcial Friendz Token contract.
+ */
 contract FriendzToken is BurnableToken, Ownable {
 
 	// public variables
@@ -139,14 +181,19 @@ contract FriendzToken is BurnableToken, Ownable {
 	string public symbol;
 	uint256 public decimals;
 
-	// constants
-
 	// events
 	event Approval(address indexed owner, address indexed spender, uint256 value);
 	event UpdatedBlockingState(address indexed to, uint256 purchase, uint256 end_date, uint256 value);
 	event CoOwnerSet(address indexed owner);
 	event ReleaseDateChanged(address indexed from, uint256 date);
 
+	/*
+	 * @dev Friendz Token's contructor
+	 * @param _name The name of the token.
+	 * @param _symbol A three-letter symbold of the token.
+	 * @param _decimals The decimals of the tokens.
+	 * @param _supply The total supply of the token.
+	 */
 	function FriendzToken(string _name, string _symbol, uint256 _decimals, uint256 _supply) public {
 		// safety checks
 		require(_decimals > 0);
@@ -162,9 +209,11 @@ contract FriendzToken is BurnableToken, Ownable {
 		balances[owner] = _supply;
 	}
 
-	// modifiers
-
-	// checks if the address can transfer tokens
+	/**
+	 * @dev Modifier used to check if an address is able to transfer a certain amount of tokens.
+	 * @param _sender The transaction sender.
+	 * @param _value The amount to transfer in tokens.
+	 */
 	modifier canTransfer(address _sender, uint256 _value) {
 		require(_sender != address(0));
 
@@ -177,22 +226,29 @@ contract FriendzToken is BurnableToken, Ownable {
 	 	_;
 	}
 
-	// check if we're in a free-transfter state
+	/**
+	 * @dev Modifier used to check if the `free_token` variable is set to True. 
+	 */
 	modifier isFreeTransfer() {
 		require(free_transfer);
 
 		_;
 	}
 
-	// check if we're in non free-transfter state
+	/**
+	 * @dev Modifier used to check if the `free_token` variable is set to False. 
+	 */
 	modifier isBlockingTransfer() {
 		require(!free_transfer);
 
 		_;
 	}
 
-	// functions
-
+	/**
+	 * @dev Checks if the sender address is one of those who could transfer tokens before the start of the ICO.
+	 * @param _sender The transaction sender.
+	 * @return True or False.
+	 */
 	function canTransferBefore(address _sender) public view returns(bool) {
 		return (
 			_sender == owner ||
@@ -203,6 +259,12 @@ contract FriendzToken is BurnableToken, Ownable {
 		);
 	}
 
+	/**
+	 * @dev Checks if the sender address can send a certain amount of tokens if they have got some locked balance.
+	 * @param _sender The transaction sender.
+	 * @param _value The amount of tokens to transfer.
+	 * @return True or False.
+	 */
 	function canTransferIfLocked(address _sender, uint256 _value) public view returns(bool) {
 		uint256 after_math = balances[_sender].sub(_value);
 		return (
@@ -211,7 +273,10 @@ contract FriendzToken is BurnableToken, Ownable {
         );
 	}
 
-	// set co-owner, can be set to 0
+	/**
+	 * @dev Sets the `co_owner` variable to a new address.
+	 * @param _addr The new co-owner address.
+	 */
 	function setCoOwner(address _addr) onlyOwner public {
 		require(_addr != co_owner);
 
@@ -220,7 +285,10 @@ contract FriendzToken is BurnableToken, Ownable {
 		CoOwnerSet(_addr);
 	}
 
-	// set release date
+	/**
+	 * @dev Sets the relase date of all the tokens, after this date transactions can be made.
+	 * @param _date The release date in unix epoch.
+	 */
 	function setReleaseDate(uint256 _date) onlyOwner public {
 		require(_date > 0);
 		require(_date != RELEASE_DATE);
@@ -230,7 +298,11 @@ contract FriendzToken is BurnableToken, Ownable {
 		ReleaseDateChanged(msg.sender, _date);
 	}
 
-	// calculate the amount of tokens an address can use
+	/**
+		* @dev Returns the minimum amount of tokens an address has to be in their balance.
+		* @param _addr The address to check.
+		* @return The amount of tokens still locked.
+		*/
 	function getMinimumAmount(address _addr) constant public returns (uint256) {
 		// if the address ha no limitations just return 0
 		if(blocked_amounts[_addr] == 0x0)
@@ -248,7 +320,12 @@ contract FriendzToken is BurnableToken, Ownable {
 		return tokens;
 	}
 
-	// set blocking state to an address
+	/**
+	 * @dev Sets the amount of tokens an account has locked, used during ICO.
+	 * @param _addr The address in question.
+	 * @param _end The release date of the locked amount.
+	 * @param _value The amount of tokens to lock.
+	 */
 	function setBlockingState(address _addr, uint256 _end, uint256 _value) isBlockingTransfer public {
 		// only the onwer and the co-owner can call this function
 		require(
@@ -272,17 +349,27 @@ contract FriendzToken is BurnableToken, Ownable {
 		UpdatedBlockingState(_addr, _end, RELEASE_DATE, final_value);
 	}
 
-	// all addresses can transfer tokens now
+	/**
+	 * @dev Unlock all tokens.
+	 */
 	function freeToken() public onlyOwner {
 		free_transfer = true;
 	}
 
-	// override function using canTransfer on the sender address
+	/**
+	 * @dev Override to add the modifier `canTransfer`.
+	 */
 	function transfer(address _to, uint _value) canTransfer(msg.sender, _value) public returns (bool success) {
 		return super.transfer(_to, _value);
 	}
 
-	// transfer tokens from one address to another
+	/**
+	 * @dev Transfer an amount of tokens from one address to another.
+	 * @param _from The address where the tokens should be taken from.
+	 * @param _to The address where the tokens should be sent.
+	 * @param _value The amount of tokens to send.
+	 * @return True on success.
+	 */
 	function transferFrom(address _from, address _to, uint _value) canTransfer(_from, _value) public returns (bool success) {
 		require(_from != address(0));
 		require(_to != address(0));
@@ -298,32 +385,49 @@ contract FriendzToken is BurnableToken, Ownable {
 	    return true;
 	}
 
-	// erc20 functions
-  	function approve(address _spender, uint256 _value) public returns (bool) {
+	/**
+	 * @dev Allow an amount of tokens to be spent from another address.
+	 * @param _spender The spender address.
+	 * @param _value The amount of tokens to allow.
+	 * @return True on success.
+	 */
+  function approve(address _spender, uint256 _value) public returns (bool) {
 	 	require(_value == 0 || allowed[msg.sender][_spender] == 0);
 
 	 	allowed[msg.sender][_spender] = _value;
 	 	Approval(msg.sender, _spender, _value);
 
 	 	return true;
-  	}
+  }
 
+  /**
+   * @dev Returns The amount of tokens still to be spent by an address.
+   * @param _owner The owner of the tokens.
+   * @param _spender The tokens spender.
+   * @return The amount of tokens remaining.
+   */
 	function allowance(address _owner, address _spender) public constant returns (uint256 remaining) {
-    	return allowed[_owner][_spender];
-  	}
+   	return allowed[_owner][_spender];
+  }
 
 	/**
-	* approve should be called when allowed[_spender] == 0. To increment
-	* allowed value is better to use this function to avoid 2 calls (and wait until
-	* the first transaction is mined)
-	* From MonolithDAO Token.sol
-	*/
+	 * @dev Increments the amount of tokens an address can spend.
+	 * @param _spender The spender address.
+	 * @param _addedValue The amount of tokens to add to the remaining ones.
+	 * @return True on success.
+	 */
 	function increaseApproval (address _spender, uint256 _addedValue) public returns (bool success) {
 		allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
 		Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
 		return true;
 	}
 
+	/**
+	 * @dev Decrements the amount of tokens an address can spend.
+	 * @param _spender The spender address.
+	 * @param _addedValue The amount of tokens to subtract from the remaining ones.
+	 * @return True on success.
+	 */
 	function decreaseApproval (address _spender, uint256 _subtractedValue) public returns (bool success) {
 		uint256 oldValue = allowed[msg.sender][_spender];
 		if (_subtractedValue >= oldValue) {
